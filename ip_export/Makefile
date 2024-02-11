@@ -27,6 +27,7 @@ install_deps:
 
 py_codegen:
 	${PYTHON} ./filter_msg_gen.py
+	mv pysv_pkg.sv ./sim
 
 compile: py_codegen
 	@echo "  - Compiling"
