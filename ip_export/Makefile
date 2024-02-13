@@ -18,6 +18,7 @@ help: info
 clean:
 	@echo "Cleaning"
 	rm -rf build
+	rm -f *.log *.jou *.pb
 	cd sim && rm -f *.log *.jou *.pb
 	cd sim && rm -rf xsim.dir
 
