@@ -26,21 +26,23 @@ install_deps:
 	${PYTHON} -m pip install pysv==0.2.0
 	#${PYTHON} -m pip install attrs==23.1.0
 
+SIM_DIR=sim/synth/func
+
 py_codegen:
 	${PYTHON} ./filter_msg_gen.py
 	mv pysv_pkg.sv ./sim
 
 compile: py_codegen
 	@echo "  - Compiling"
-	${SRC_XIL} && cd sim && ./compile.sh
+	${SRC_XIL} && cd ${SIM_DIR} && ./compile.sh
 
 elaborate: compile
 	@echo "  - Elaborating"
-	${SRC_XIL} && cd sim && ./elaborate.sh
+	${SRC_XIL} && cd ${SIM_DIR} && ./elaborate.sh
 
 simulate: elaborate
 	@echo "  - Simulating"
-	${SRC_XIL} && cd sim && ./simulate.sh
+	${SRC_XIL} && cd ${SIM_DIR} && ./simulate.sh
 
 waveform:
 	@echo
