@@ -2,9 +2,10 @@ SHELL := /bin/bash
 VIVADO_VER           := 2023.2
 
 SRC_XIL=source /tools/Xilinx/Vivado/${VIVADO_VER}/settings64.sh
+SIM_DIR ?= sim/synth/func
 export PYTHON=python3.11
 
-help: info
+help:
 	@echo
 	@echo "Help"
 	@echo "  - clean"
@@ -13,10 +14,28 @@ help: info
 	@echo "  - elaborate"
 	@echo "  - simulate"
 	@echo "  - waveform"
+	@echo ""
+	@echo "To Run a simulation for a specific configuration use:"
+	@echo "  SIM_DIR=sim/synth/func make simulate (default)"
+	@echo "  SIM_DIR=sim/synth/timing make simulate"
+	@echo "  SIM_DIR=sim/impl/func make simulate"
+	@echo "  SIM_DIR=sim/imply/timing make simulate"
+
+clean_%: export build_type=$(shell echo "$*" | awk -F'_' '{ print $$1 }')
+clean_%: export sim_type=$(shell echo "$*" | awk -F'_' '{ print $$2 }')
+clean_%:
+	@echo "Cleaning:"
+	@echo -e "\t - Build type: ${build_type}"
+	@echo -e "\t - Simulation type: ${sim_type}"
+	@cd sim/${build_type}/${sim_type} && rm -rf xsim.dir *.log *.pb *.jou
 
 
-clean:
+clean: clean_synth_func clean_synth_timing clean_impl_func clean_impl_timing
 	@echo "Cleaning"
+	@rm -rf build/
+
+
+comment:
 	rm -rf build
 	rm -f *.log *.jou *.pb
 	cd sim && rm -f *.log *.jou *.pb
@@ -26,11 +45,11 @@ install_deps:
 	${PYTHON} -m pip install pysv==0.2.0
 	#${PYTHON} -m pip install attrs==23.1.0
 
-SIM_DIR=sim/synth/func
 
 py_codegen:
 	${PYTHON} ./filter_msg_gen.py
 	mv pysv_pkg.sv ./sim
+	mv ./build/libpysv.so ./sim
 
 compile: py_codegen
 	@echo "  - Compiling"

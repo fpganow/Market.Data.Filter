@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
-//`include "pysv_pkg.sv"
-//import pysv::*;
+`include "sim/pysv_pkg.sv"
+import pysv::*;
 
 //////////////////////////////////////////////////////////////////////////////////
 //
