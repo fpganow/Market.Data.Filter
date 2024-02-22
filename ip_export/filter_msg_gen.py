@@ -116,7 +116,11 @@ Generator.Securities:
     @sv(idx=DataType.Int,
         return_type=DataType.ULongInt)
     def watchlist_get_item(self, idx: int) -> int:
-        return self._watch_list[idx]
+        right_padded = self._watch_list[idx] + ((8 - len(self._watch_list[idx])) * " ")
+        val = int.from_bytes(right_padded.encode(), "big")
+#        print(f'{right_padded} == val: {hex(val)}')
+        return val
+
 
     @sv(return_type=DataType.Bit)
     def has_msg(self) -> bool:

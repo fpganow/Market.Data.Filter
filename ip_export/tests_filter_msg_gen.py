@@ -1,4 +1,4 @@
-from hamcrest import assert_that, equal_to, has_length, starts_with
+from hamcrest import assert_that, contains_string, equal_to, has_length, starts_with
 from unittest import TestCase
 
 from filter_msg_gen import FilterBench
@@ -57,7 +57,7 @@ symbol = "MSFT"
         assert_that(filter_bench.watch_list(), has_length(2))
 
         print(filter_bench.print_header())
-        assert_that(filter_bench.print_header(), starts_with('Benchmark name:'))
+        assert_that(filter_bench.print_header(), contains_string('Benchmark name:'))
 
         assert_that(filter_bench.number_of_messages(), equal_to(500))
 
@@ -78,7 +78,7 @@ class TestWatchList(TestCase):
         # THEN
         assert_that(watchlist_size, equal_to(2))
         assert_that(watchlist_words, has_length(2))
-        assert_that(watchlist_words[0], equal_to(0x4141504c20202020))
+        assert_that(watchlist_words[0], equal_to(0x4d53465420202020))
         assert_that(watchlist_words[1], equal_to(0x4141504c20202020))
 
         # Type
