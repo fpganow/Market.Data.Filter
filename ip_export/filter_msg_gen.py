@@ -4,7 +4,7 @@ from pysv import (
     generate_sv_binding,
     sv
 )
-from common import GenerateOption
+#from common import GenerateOption
 import math
 from pathlib import Path
 import sys
@@ -108,6 +108,15 @@ Generator.Securities:
 {securities_gen}
 ------------------------------------------------------------------------------
 """
+
+    @sv(return_type=DataType.Int)
+    def watchlist_get_size(self) -> int:
+        return len(self._watch_list)
+
+    @sv(idx=DataType.Int,
+        return_type=DataType.ULongInt)
+    def watchlist_get_item(self, idx: int) -> int:
+        return self._watch_list[idx]
 
     @sv(return_type=DataType.Bit)
     def has_msg(self) -> bool:

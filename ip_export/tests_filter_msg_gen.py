@@ -71,9 +71,9 @@ class TestWatchList(TestCase):
         watchlist_words = []
 
         # WHEN
-        watchlist_size = filter_bench.get_watchlist_size()
+        watchlist_size = filter_bench.watchlist_get_size()
         for i in range(watchlist_size):
-            watchlist_words.append(filter_bench.get_watchlist_item(i))
+            watchlist_words.append(filter_bench.watchlist_get_item(i))
 
         # THEN
         assert_that(watchlist_size, equal_to(2))
