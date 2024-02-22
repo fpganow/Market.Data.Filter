@@ -81,3 +81,31 @@ class TestWatchList(TestCase):
         assert_that(watchlist_words[0], equal_to(0x4141504c20202020))
         assert_that(watchlist_words[1], equal_to(0x4141504c20202020))
 
+        # Type
+        #  Time
+        #  AddOrder
+        #  OrderExecuted
+        #  OrderExecutedAtPriceSize
+        #  ReduceSize
+        #  ModifyOrder
+        #  DeleteOrder
+        #  Get.Everything
+        #  Get.All.Orders
+        #  Get.Top
+
+        # SerializeCommand
+        # [0] type
+        # side
+        # orderid
+        # quantity
+        # symbol
+        # price
+        # exe.qty
+        # can.qty
+        # rem.qty
+        # seconds
+        # nanoseconds
+        # [11] add
+        # [12] edit
+        # [13] remove
+
