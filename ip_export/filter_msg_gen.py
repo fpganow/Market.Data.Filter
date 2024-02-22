@@ -4,6 +4,119 @@ from pysv import (
     generate_sv_binding,
     sv
 )
+from common import GenerateOption
+import math
+from pathlib import Path
+import sys
+import tomllib
+from typing import Dict, List
+
+
+
+class FilterBench(object):
+
+    @sv(msg=DataType.String)
+    def LOG_NOW(self, msg: str):
+        print(msg)
+        sys.stdout.flush()
+
+    @sv(config_filepath_or_str=DataType.String)
+    def __init__(self, config_filepath_or_str: str):
+        toml_file = None
+        self._config_file_name = "<raw string>"
+
+        try:
+            if Path(config_filepath_or_str).exists() is True:
+                self._config_file_name = config_filepath_or_str
+                with open(Path(config_filepath_or_str), mode="rb") as fin:
+                    toml_file = tomllib.load(fin)
+        except OSError as ose:
+            print(f'Config is a string')
+            print('-'*80); sys.stdout.flush()
+            toml_file = tomllib.loads(config_filepath_or_str)
+
+        if toml_file is None:
+            self.LOG_NOW('Exception')
+            raise Exception(f'Failed to load config from {config_filepath_or_str}')
+
+        self._name = toml_file['name']
+        self._description = toml_file['description']
+        self._watch_list = toml_file['watchlist']
+
+        self._number_of_messages = toml_file['generator']['number_of_messages']
+        self._securities_gen = []
+        for security in toml_file['security']:
+            self.LOG_NOW("Parsing Security")
+            sec_gen_dict = {}
+            sec_gen_dict['symbol'] = security['symbol']
+            if 'weight' in security:
+                sec_gen_dict['weight'] = security['weight']
+            else:
+                sec_gen_dict['weight'] = math.nan
+            if 'book_size_range' in security:
+                sec_gen_dict['book_size_range'] = security['book_size_range']
+            else:
+                sec_gen_dict['book_size_range'] = 10
+            if 'price_range' in security:
+                sec_gen_dict['price_range'] = security['price_range']
+            else:
+                sec_gen_dict['price_range'] = [75.00, 125.00]
+            if 'size_range' in security:
+                sec_gen_dict['size_range'] = security['size_range']
+            else:
+                sec_gen_dict['size_range'] = [25, 200]
+
+            self._securities_gen.append(sec_gen_dict)
+
+    @sv(return_type=DataType.String)
+    def name(self) -> str:
+        return self._name
+
+    @sv(return_type=DataType.String)
+    def description(self) -> str:
+        return self._description
+
+    @sv(return_type=DataType.String)
+    def watch_list(self) -> List[str]:
+        return self._watch_list
+
+    @sv(return_type=DataType.Int)
+    def number_of_messages(self) -> int:
+        return self._number_of_messages
+
+    @sv(return_type=DataType.String)
+    def get_config_file(self) -> str:
+        return self._config_file_name
+
+    @sv(return_type=DataType.String)
+    def print_header(self) -> str:
+        watch_list = '\n'.join(['  - ' + x for x in self._watch_list])
+        securities_gen = '\n'.join([ str(x) for x in self._securities_gen])
+        return f"""
+------------------------------------------------------------------------------
+Benchmark name: {self.name()}
+Long description:
+{self.description()}
+
+Watchlist:
+{watch_list}
+
+Generator:
+# of messages: {self.number_of_messages()}
+
+Generator.Securities:
+{securities_gen}
+------------------------------------------------------------------------------
+"""
+
+    @sv(return_type=DataType.Bit)
+    def has_msg(self) -> bool:
+        return False
+
+    @sv(return_type=DataType.Int)
+    def is_ok(self):
+        return 100
+
 
 class MyList(object):
     @sv()
@@ -127,6 +240,7 @@ def compile():
     # clean_up_build=True
     # add_sys_path=False # Whether to add system path
     lib_path = compile_lib([MyList,
+                            FilterBench,
                             get_conf_commands], cwd="build")
 
     # generate SV binding
@@ -134,6 +248,7 @@ def compile():
     # pretty_print=True
     #filename='out_sv_file.sv'
     generate_sv_binding([MyList,
+                         FilterBench,
                          get_conf_commands], filename="pysv_pkg.sv")
 
 if __name__ == "__main__":
