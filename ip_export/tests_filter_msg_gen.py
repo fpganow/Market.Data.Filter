@@ -4,12 +4,13 @@ from unittest import TestCase
 from filter_msg_gen import FilterBench
 
 class TestCommandGenerator(TestCase):
-    def DISABLED_test_basic_config_from_file(self):
+    def test_basic_config_from_file(self):
         # GIVEN
         config_toml = 'sim/bench_1.cfg'
 
         # Construct/set up FilterBench
-        filter_bench = FilterBench(config_filepath_or_str=config_toml)
+        filter_bench = FilterBench(path_or_str='fake_path.cfg',
+                                   backup_path=config_toml)
 
         assert_that(filter_bench.has_msg(), equal_to(False))
 
@@ -48,7 +49,7 @@ symbol = "MSFT"
 """
 
         # Construct/set up FilterBench
-        filter_bench = FilterBench(config_filepath_or_str=config_toml)
+        filter_bench = FilterBench(path_or_str=config_toml)
 
         assert_that(filter_bench.has_msg(), equal_to(False))
 
@@ -67,7 +68,7 @@ class TestWatchList(TestCase):
         config_toml = 'sim/bench_1.cfg'
 
         # Construct/set up FilterBench
-        filter_bench = FilterBench(config_filepath_or_str=config_toml)
+        filter_bench = FilterBench(path_or_str=config_toml)
         watchlist_words = []
 
         # WHEN

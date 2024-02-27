@@ -36,6 +36,7 @@ clean_%:
 clean: clean_synth_func clean_synth_timing clean_impl_func clean_impl_timing
 	@echo "Cleaning"
 	@rm -rf build/
+	@rm -f *.jou *.log
 
 
 install_deps:

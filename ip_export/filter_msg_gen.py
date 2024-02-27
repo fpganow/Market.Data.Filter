@@ -12,32 +12,33 @@ import tomllib
 from typing import Dict, List
 
 
-
 class FilterBench(object):
 
-    @sv(msg=DataType.String)
-    def LOG_NOW(self, msg: str):
-        print(msg)
-        sys.stdout.flush()
-
-    @sv(config_filepath_or_str=DataType.String)
-    def __init__(self, config_filepath_or_str: str):
+    @sv(path_or_str=DataType.String,
+        backup_path=DataType.String)
+    def __init__(self,
+                 path_or_str: str,
+                 backup_path: str = None):
         toml_file = None
         self._config_file_name = "<raw string>"
 
         try:
-            if Path(config_filepath_or_str).exists() is True:
-                self._config_file_name = config_filepath_or_str
-                with open(Path(config_filepath_or_str), mode="rb") as fin:
+            if Path(path_or_str).exists() is True:
+                self._config_file_name = path_or_str
+                with open(Path(path_or_str), mode="rb") as fin:
+                    toml_file = tomllib.load(fin)
+            elif Path(backup_path).exists() is True:
+                self._config_file_name = backup_path
+                with open(Path(backup_path), mode="rb") as fin:
                     toml_file = tomllib.load(fin)
         except OSError as ose:
             print(f'Config is a string')
             print('-'*80); sys.stdout.flush()
-            toml_file = tomllib.loads(config_filepath_or_str)
+            toml_file = tomllib.loads(path_or_str)
 
         if toml_file is None:
             self.LOG_NOW('Exception')
-            raise Exception(f'Failed to load config from {config_filepath_or_str}')
+            raise Exception(f'Failed to load config from {path_or_str}')
 
         self._name = toml_file['name']
         self._description = toml_file['description']
@@ -67,6 +68,11 @@ class FilterBench(object):
                 sec_gen_dict['size_range'] = [25, 200]
 
             self._securities_gen.append(sec_gen_dict)
+
+    @sv(msg=DataType.String)
+    def LOG_NOW(self, msg: str):
+        print(msg)
+        sys.stdout.flush()
 
     @sv(return_type=DataType.String)
     def name(self) -> str:
