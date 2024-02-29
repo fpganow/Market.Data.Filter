@@ -11,10 +11,14 @@ import sys
 import tomllib
 from typing import Dict, List
 
+
 class OBCommand(object):
     @sv()
     def __init__(self):
         self._type = 0
+
+    def from_dict(self, in_dict):
+        self._type = in_dict['cmd_type']
 
     def from_parms(self, cmd_type: int):
         self._type = cmd_type
@@ -122,9 +126,10 @@ class FilterBench(object):
             self._securities_gen.append(sec_gen_dict)
 
         self._commands = []
-        self._commands.append("A")
-        self._commands.append("B")
-        self._commands.append("C")
+        ob_cmd = {}
+        ob_cmd['cmd_type'] = 9
+
+        self._commands.append(ob_cmd)
 
     @sv(msg=DataType.String)
     def LOG_NOW(self, msg: str):
@@ -189,12 +194,11 @@ Generator.Securities:
         return self._watch_list[idx]
 
     @sv(in_ob_cmd=OBCommand)
-    def get_next_command(self, in_ob_cmd: OBCommand) -> None:
-        return 10
+    def get_next_command(self, in_ob_cmd) -> None:
+        in_ob_cmd.from_dict(self._commands.pop())
 
     @sv(return_type=DataType.Bit)
     def has_more_commands(self) -> bool:
-        self._commands.pop()
         return len(self._commands) > 0
 
     @sv(return_type=DataType.Int)

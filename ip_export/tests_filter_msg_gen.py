@@ -29,7 +29,8 @@ class TestCommandGenerator(TestCase):
         filter_bench = FilterBench(path_or_str='fake_path.cfg',
                                    backup_path=config_toml)
 
-        assert_that(filter_bench.has_msg(), equal_to(False))
+        assert_that(filter_bench.has_more_commands(), equal_to(True))
+        ob_cmd = OBCommand()
 
         assert_that(filter_bench.name(), equal_to('Benchmark #1'))
         assert_that(filter_bench.description(), starts_with('Test how long'))
@@ -68,7 +69,7 @@ symbol = "MSFT"
         # Construct/set up FilterBench
         filter_bench = FilterBench(path_or_str=config_toml)
 
-        assert_that(filter_bench.has_msg(), equal_to(False))
+        assert_that(filter_bench.has_more_commands(), equal_to(True))
 
         assert_that(filter_bench.name(), equal_to('Test 1 Security'))
         assert_that(filter_bench.description(), starts_with('Test how long'))
