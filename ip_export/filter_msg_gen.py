@@ -11,9 +11,61 @@ import sys
 import tomllib
 from typing import Dict, List
 
+class OBCommand(object):
+    @sv()
+    def __init__(self):
+        self._type = 0
+
+    def from_parms(self, cmd_type: int):
+        self._type = cmd_type
+
+    @sv(return_type=DataType.UByte)
+    def cmd_type(self) -> int:
+        return self._type
+
+    @sv(return_type=DataType.UByte)
+    def cmd_side(self) -> int:
+        return self._side
+
+    @sv(return_type=DataType.UByte)
+    def cmd_orderid(self) -> int:
+        return self._orderid
+
+    @sv(return_type=DataType.UByte)
+    def cmd_quantity(self) -> int:
+        return self._quantity
+
+    @sv(return_type=DataType.UByte)
+    def cmd_symbol(self) -> int:
+        return self._symbol
+
+    @sv(return_type=DataType.UByte)
+    def cmd_price(self) -> int:
+        return self._price
+
+    @sv(return_type=DataType.UByte)
+    def cmd_executed_qty(self) -> int:
+        return self._executed_qty
+
+    @sv(return_type=DataType.UByte)
+    def cmd_canceled_qty(self) -> int:
+        return self._canceled_qty
+
+    @sv(return_type=DataType.UByte)
+    def cmd_remaining_qty(self) -> int:
+        return self._remaining_qty
+
+    @sv(return_type=DataType.UByte)
+    def cmd_seconds(self) -> int:
+        return self._seconds
+
+    @sv(return_type=DataType.UByte)
+    def cmd_nanoseconds(self) -> int:
+        return self._nanoseconds
+
+
 
 class FilterBench(object):
-
     @sv(path_or_str=DataType.String,
         backup_path=DataType.String)
     def __init__(self,
@@ -68,6 +120,11 @@ class FilterBench(object):
                 sec_gen_dict['size_range'] = [25, 200]
 
             self._securities_gen.append(sec_gen_dict)
+
+        self._commands = []
+        self._commands.append("A")
+        self._commands.append("B")
+        self._commands.append("C")
 
     @sv(msg=DataType.String)
     def LOG_NOW(self, msg: str):
@@ -124,13 +181,21 @@ Generator.Securities:
     def watchlist_get_item(self, idx: int) -> int:
         right_padded = self._watch_list[idx] + ((8 - len(self._watch_list[idx])) * " ")
         val = int.from_bytes(right_padded.encode(), "big")
-#        print(f'{right_padded} == val: {hex(val)}')
         return val
 
+    @sv(idx=DataType.Int,
+        return_type=DataType.String)
+    def watchlist_get_item_str(self, idx: int) -> str:
+        return self._watch_list[idx]
+
+    @sv(in_ob_cmd=OBCommand)
+    def get_next_command(self, in_ob_cmd: OBCommand) -> None:
+        return 10
 
     @sv(return_type=DataType.Bit)
-    def has_msg(self) -> bool:
-        return False
+    def has_more_commands(self) -> bool:
+        self._commands.pop()
+        return len(self._commands) > 0
 
     @sv(return_type=DataType.Int)
     def is_ok(self):
@@ -259,6 +324,7 @@ def compile():
     # clean_up_build=True
     # add_sys_path=False # Whether to add system path
     lib_path = compile_lib([MyList,
+                            OBCommand,
                             FilterBench,
                             get_conf_commands], cwd="build")
 
@@ -267,6 +333,7 @@ def compile():
     # pretty_print=True
     #filename='out_sv_file.sv'
     generate_sv_binding([MyList,
+                         OBCommand,
                          FilterBench,
                          get_conf_commands], filename="pysv_pkg.sv")
 

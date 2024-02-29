@@ -1,6 +1,23 @@
 from hamcrest import assert_that, contains_string, equal_to, has_length, starts_with
 from unittest import TestCase
 
+
+# codegen.py: get_c_type_str
+# UByte     =  uint8_t
+# UInt      =  uint32_t
+# ULongInt  =  uint64_t
+# reg    [ 7:0]    in_ip_command_in_type;
+# reg    [ 7:0]    in_ip_command_in_side;
+# reg    [63:0]    in_ip_command_in_orderid;
+# reg    [31:0]    in_ip_command_in_quantity;
+# reg    [63:0]    in_ip_command_in_symbol;
+# reg    [63:0]    in_ip_command_in_price;
+# reg    [31:0]    in_ip_command_in_executed_qty;
+# reg    [31:0]    in_ip_command_in_canceled_qty;
+# reg    [31:0]    in_ip_command_in_remaining_qty;
+# reg    [63:0]    in_ip_command_in_seconds;
+# reg    [63:0]    in_ip_command_in_nanoseconds;
+
 from filter_msg_gen import FilterBench
 
 class TestCommandGenerator(TestCase):
