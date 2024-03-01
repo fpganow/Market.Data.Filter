@@ -12,6 +12,7 @@ import tomllib
 from typing import Dict, List
 
 
+
 class OBCommand(object):
     @sv()
     def __init__(self):
@@ -125,11 +126,21 @@ class FilterBench(object):
 
             self._securities_gen.append(sec_gen_dict)
 
+        self.gen_messages()
         self._commands = []
         ob_cmd = {}
         ob_cmd['cmd_type'] = 9
 
         self._commands.append(ob_cmd)
+
+    @sv()
+    def gen_messages(self):
+        ob_cmd_2 = self.dict_for_cmd(cmd_type=9)
+
+
+    @sv(cmd_type=DataType.Int, return_type=DataType.String)
+    def dict_for_cmd(self, cmd_type: int):
+        return "A"
 
     @sv(msg=DataType.String)
     def LOG_NOW(self, msg: str):
