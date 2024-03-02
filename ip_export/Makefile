@@ -30,7 +30,7 @@ clean_%:
 	@echo "Cleaning:"
 	@echo -e "\t - Build type: ${build_type}"
 	@echo -e "\t - Simulation type: ${sim_type}"
-	@cd sim/${build_type}/${sim_type} && rm -rf xsim.dir *.log *.pb *.jou
+	@cd sim/${build_type}/${sim_type} && rm -rf xsim.dir *.log *.pb *.jou *.wdb
 
 
 clean: clean_synth_func clean_synth_timing clean_impl_func clean_impl_timing

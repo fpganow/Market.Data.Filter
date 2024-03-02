@@ -126,17 +126,29 @@ class FilterBench(object):
 
             self._securities_gen.append(sec_gen_dict)
 
-        self.gen_messages()
-        self._commands = []
+        self._commands = self.gen_messages()
+
+        self._commands2 = []
         ob_cmd = {}
         ob_cmd['cmd_type'] = 9
-
-        self._commands.append(ob_cmd)
+        self._commands2.append(ob_cmd)
 
     @sv()
     def gen_messages(self):
-        ob_cmd_2 = self.dict_for_cmd(cmd_type=9)
-
+        try:
+            def gen_msg(i):
+                return {'a': 100}
+            my_entries = {}
+            my_entries.add(gen_msg(100))
+            #my_entry = gen_msg(100)
+            return my_entry
+            #self._commands.append(my_entry)
+        except Exception as ex:
+            print(f'EXCEPTION: {ex}')
+            sys.stdout.flush()
+        #my_entry['a'] = 100
+        #self._commands.append({ "a": 100 })
+        #ob_cmd_2 = self.dict_for_cmd(cmd_type=9)
 
     @sv(cmd_type=DataType.Int, return_type=DataType.String)
     def dict_for_cmd(self, cmd_type: int):
@@ -206,11 +218,11 @@ Generator.Securities:
 
     @sv(in_ob_cmd=OBCommand)
     def get_next_command(self, in_ob_cmd) -> None:
-        in_ob_cmd.from_dict(self._commands.pop())
+        in_ob_cmd.from_dict(self._commands2.pop())
 
     @sv(return_type=DataType.Bit)
     def has_more_commands(self) -> bool:
-        return len(self._commands) > 0
+        return len(self._commands2) > 0
 
     @sv(return_type=DataType.Int)
     def is_ok(self):
@@ -332,25 +344,29 @@ def get_conf_commands(out_list: MyList, tickers: str) -> int:
 ##############################################################################
 # PYSV Related functions
 ##############################################################################
-def compile():
+def compile(compile: bool = True, binding: bool = True):
+    compile=True
+    binding=True
     # compile the a shared_lib into build folder
     # lib_name='pysv'
     # release_build=False
     # clean_up_build=True
     # add_sys_path=False # Whether to add system path
-    lib_path = compile_lib([MyList,
-                            OBCommand,
-                            FilterBench,
-                            get_conf_commands], cwd="build")
+    if compile is True:
+        lib_path = compile_lib([MyList,
+                                OBCommand,
+                                FilterBench,
+                                get_conf_commands], cwd="build")
 
     # generate SV binding
     # pkg_name='pysv'
     # pretty_print=True
     #filename='out_sv_file.sv'
-    generate_sv_binding([MyList,
-                         OBCommand,
-                         FilterBench,
-                         get_conf_commands], filename="pysv_pkg.sv")
+    if binding is True:
+        generate_sv_binding([MyList,
+                             OBCommand,
+                             FilterBench,
+                             get_conf_commands], filename="pysv_pkg.sv")
 
 if __name__ == "__main__":
     compile()
