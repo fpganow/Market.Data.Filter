@@ -4,7 +4,7 @@ from pysv import (
     generate_sv_binding,
     sv
 )
-#from common import GenerateOption
+from collections import deque
 import math
 from pathlib import Path
 import sys
@@ -126,33 +126,25 @@ class FilterBench(object):
 
             self._securities_gen.append(sec_gen_dict)
 
-        self._commands = self.gen_messages()
+        self._commands = deque()
+        ob_cmds = self.gen_messages()
+        self._commands.extend(ob_cmds)
 
-        self._commands2 = []
-        ob_cmd = {}
-        ob_cmd['cmd_type'] = 9
-        self._commands2.append(ob_cmd)
-
-    @sv()
     def gen_messages(self):
-        try:
-            def gen_msg(i):
-                return {'a': 100}
-            my_entries = {}
-            my_entries.add(gen_msg(100))
-            #my_entry = gen_msg(100)
-            return my_entry
-            #self._commands.append(my_entry)
-        except Exception as ex:
-            print(f'EXCEPTION: {ex}')
-            sys.stdout.flush()
-        #my_entry['a'] = 100
-        #self._commands.append({ "a": 100 })
-        #ob_cmd_2 = self.dict_for_cmd(cmd_type=9)
+        my_cmds = deque()
+
+        def gen_cmd(cmd_type: int):
+            return { 'cmd_type': cmd_type }
+
+        my_cmds.append( gen_cmd(cmd_type=30) )
+        my_cmds.append( gen_cmd(cmd_type=31) )
+        my_cmds.append( gen_cmd(cmd_type=32) )
+
+        return my_cmds
 
     @sv(cmd_type=DataType.Int, return_type=DataType.String)
     def dict_for_cmd(self, cmd_type: int):
-        return "A"
+        return {"A": 1}
 
     @sv(msg=DataType.String)
     def LOG_NOW(self, msg: str):
@@ -216,9 +208,9 @@ Generator.Securities:
     def watchlist_get_item_str(self, idx: int) -> str:
         return self._watch_list[idx]
 
-    @sv(in_ob_cmd=OBCommand)
+    @sv(in_ob_cmd=DataType.Object)
     def get_next_command(self, in_ob_cmd) -> None:
-        in_ob_cmd.from_dict(self._commands2.pop())
+        in_ob_cmd.from_dict(self._commands.popleft())
 
     @sv(return_type=DataType.Bit)
     def has_more_commands(self) -> bool:
