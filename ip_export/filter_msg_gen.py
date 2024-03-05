@@ -5,6 +5,7 @@ from pysv import (
     sv
 )
 from collections import deque
+from enum import Enum
 import math
 from pathlib import Path
 import sys
@@ -12,62 +13,103 @@ import tomllib
 from typing import Dict, List
 
 
-
 class OBCommand(object):
     @sv()
     def __init__(self):
-        self._type = 0
+        self._cmd_type = 0
+        self._cmd_side = 0
+        self._cmd_orderid = 0
+        self._cmd_quantity = 0
 
+        self._cmd_symbol = 0
+        self._cmd_price = 0
+        self._cmd_executed_qty = 0
+        self._cmd_canceled_qty = 0
+
+        self._cmd_remaining_qty = 0
+        self._cmd_seconds = 0
+        self._cmd_nanoseconds = 0
+        self._cmd_add = 0
+
+        self._cmd_edit = 0
+        self._cmd_remove = 0
+
+    # Creators
     def from_dict(self, in_dict):
-        self._type = in_dict['cmd_type']
+        self._cmd_type = in_dict['cmd_type']
+        self._cmd_side = in_dict['cmd_side']
+        self._cmd_orderid = in_dict['cmd_orderid']
+        self._cmd_quantity = in_dict['cmd_quantity']
 
-    def from_parms(self, cmd_type: int):
-        self._type = cmd_type
+        self._cmd_symbol = in_dict['cmd_symbol']
+        self._cmd_price = in_dict['cmd_price']
+        self._cmd_executed_qty = in_dict['cmd_executed_qty']
+        self._cmd_canceled_qty = in_dict['cmd_canceled_qty']
 
+        self._cmd_remaining_qty = in_dict['cmd_remaining_qty']
+        self._cmd_seconds = in_dict['cmd_seconds']
+        self._cmd_nanoseconds = in_dict['cmd_nanoseconds']
+        self._cmd_add = in_dict['cmd_add']
+
+        self._cmd_edit = in_dict['cmd_edit']
+        self._cmd_remove = in_dict['cmd_remove']
+
+    # Properties
     @sv(return_type=DataType.UByte)
     def cmd_type(self) -> int:
-        return self._type
+        return self._cmd_type
 
     @sv(return_type=DataType.UByte)
     def cmd_side(self) -> int:
-        return self._side
+        return self._cmd_side
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.ULongInt)
     def cmd_orderid(self) -> int:
-        return self._orderid
+        return self._cmd_orderid
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.UInt)
     def cmd_quantity(self) -> int:
-        return self._quantity
+        return self._cmd_quantity
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.ULongInt)
     def cmd_symbol(self) -> int:
-        return self._symbol
+        return self._cmd_symbol
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.ULongInt)
     def cmd_price(self) -> int:
-        return self._price
+        return self._cmd_price
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.UInt)
     def cmd_executed_qty(self) -> int:
-        return self._executed_qty
+        return self._cmd_executed_qty
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.UInt)
     def cmd_canceled_qty(self) -> int:
-        return self._canceled_qty
+        return self._cmd_canceled_qty
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.UInt)
     def cmd_remaining_qty(self) -> int:
-        return self._remaining_qty
+        return self._cmd_remaining_qty
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.ULongInt)
     def cmd_seconds(self) -> int:
-        return self._seconds
+        return self._cmd_seconds
 
-    @sv(return_type=DataType.UByte)
+    @sv(return_type=DataType.ULongInt)
     def cmd_nanoseconds(self) -> int:
-        return self._nanoseconds
+        return self._cmd_nanoseconds
 
+    @sv(return_type=DataType.Bit)
+    def cmd_add(self) -> bool:
+        return self._cmd_add
+
+    @sv(return_type=DataType.Bit)
+    def cmd_edit(self) -> bool:
+        return self._cmd_edit
+
+    @sv(return_type=DataType.Bit)
+    def cmd_remove(self) -> bool:
+        return self._cmd_remove
 
 
 class FilterBench(object):
@@ -133,18 +175,70 @@ class FilterBench(object):
     def gen_messages(self):
         my_cmds = deque()
 
-        def gen_cmd(cmd_type: int):
-            return { 'cmd_type': cmd_type }
+        class CmdType(Enum):
+            Time = 0
+            AddOrder = 1
+            OrderExecuted = 2
+            OrderExecutedAtPrice = 3
+            ReduceSize = 4
+            ModifyOrder = 5
+            DeleteOrder = 6
+            GetEverything = 7
+            GetAllOrders = 8
+            GetTop = 9
 
-        my_cmds.append( gen_cmd(cmd_type=30) )
-        my_cmds.append( gen_cmd(cmd_type=31) )
-        my_cmds.append( gen_cmd(cmd_type=32) )
+        def gen_cmd(cmd_type: str,
+                    cmd_side: str,
+                    cmd_orderid: int,
+                    cmd_quantity: int,
+                    cmd_symbol: int,
+                    cmd_price: int,
+                    cmd_executed_qty: int,
+                    cmd_canceled_qty: int,
+                    cmd_remaining_qty: int,
+                    cmd_seconds: int,
+                    cmd_nanoseconds: int,
+                    cmd_add: int,
+                    cmd_edit: int,
+                    cmd_remove: int
+                    ):
+            out_cmd = {}
+            out_cmd['cmd_type'] = CmdType[cmd_type].value
+            out_cmd['cmd_side'] = 0x42 if cmd_side == 'B' else 0x53
+            out_cmd['cmd_orderid'] = cmd_orderid
+            out_cmd['cmd_quantity'] = cmd_quantity
+
+            out_cmd['cmd_symbol'] = cmd_symbol
+            out_cmd['cmd_price'] = cmd_price
+            out_cmd['cmd_executed_qty'] = cmd_executed_qty
+            out_cmd['cmd_canceled_qty'] = cmd_canceled_qty
+
+            out_cmd['cmd_remaining_qty'] = cmd_remaining_qty
+            out_cmd['cmd_seconds'] = cmd_seconds
+            out_cmd['cmd_nanoseconds'] = cmd_nanoseconds
+            out_cmd['cmd_add'] = cmd_add
+
+            out_cmd['cmd_edit'] = cmd_edit
+            out_cmd['cmd_remove'] = cmd_remove
+            return out_cmd
+
+        my_cmds.append( gen_cmd(cmd_type="Time",
+                                cmd_side='B',
+                                cmd_orderid=0x30,
+                                cmd_quantity=20_000,
+                                cmd_symbol=0x4141504C20202020,
+                                cmd_price=9050,
+                                cmd_executed_qty=150,
+                                cmd_canceled_qty=0,
+                                cmd_remaining_qty=0,
+                                cmd_seconds=500,
+                                cmd_nanoseconds=0,
+                                cmd_add=1,
+                                cmd_edit=0,
+                                cmd_remove=0
+                                ) )
 
         return my_cmds
-
-    @sv(cmd_type=DataType.Int, return_type=DataType.String)
-    def dict_for_cmd(self, cmd_type: int):
-        return {"A": 1}
 
     @sv(msg=DataType.String)
     def LOG_NOW(self, msg: str):
@@ -192,6 +286,7 @@ Generator.Securities:
 ------------------------------------------------------------------------------
 """
 
+    # WatchList Section
     @sv(return_type=DataType.Int)
     def watchlist_get_size(self) -> int:
         return len(self._watch_list)
@@ -208,13 +303,14 @@ Generator.Securities:
     def watchlist_get_item_str(self, idx: int) -> str:
         return self._watch_list[idx]
 
+    # Command Section
     @sv(in_ob_cmd=DataType.Object)
     def get_next_command(self, in_ob_cmd) -> None:
         in_ob_cmd.from_dict(self._commands.popleft())
 
     @sv(return_type=DataType.Bit)
     def has_more_commands(self) -> bool:
-        return len(self._commands2) > 0
+        return len(self._commands) > 0
 
     @sv(return_type=DataType.Int)
     def is_ok(self):
@@ -328,10 +424,6 @@ class MyList(object):
             sys.stdout.flush()
         return res
 
-@sv(out_list=MyList, ticker=DataType.String, return_type=DataType.Int)
-def get_conf_commands(out_list: MyList, tickers: str) -> int:
-    out_list.append_list([0, 0, 0, 0, 0, 0, 0, 1])
-    return 0
 
 ##############################################################################
 # PYSV Related functions
@@ -347,8 +439,7 @@ def compile(compile: bool = True, binding: bool = True):
     if compile is True:
         lib_path = compile_lib([MyList,
                                 OBCommand,
-                                FilterBench,
-                                get_conf_commands], cwd="build")
+                                FilterBench], cwd="build")
 
     # generate SV binding
     # pkg_name='pysv'
@@ -357,8 +448,7 @@ def compile(compile: bool = True, binding: bool = True):
     if binding is True:
         generate_sv_binding([MyList,
                              OBCommand,
-                             FilterBench,
-                             get_conf_commands], filename="pysv_pkg.sv")
+                             FilterBench], filename="pysv_pkg.sv")
 
 if __name__ == "__main__":
     compile()

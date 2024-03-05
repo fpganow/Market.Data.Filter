@@ -31,6 +31,7 @@ clean_%:
 	@echo -e "\t - Build type: ${build_type}"
 	@echo -e "\t - Simulation type: ${sim_type}"
 	@cd sim/${build_type}/${sim_type} && rm -rf xsim.dir *.log *.pb *.jou *.wdb
+	@rm -f sim/libpysv.so sim/pysv_pkg.sv
 
 
 clean: clean_synth_func clean_synth_timing clean_impl_func clean_impl_timing
