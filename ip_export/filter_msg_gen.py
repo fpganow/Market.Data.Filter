@@ -222,7 +222,7 @@ class FilterBench(object):
             out_cmd['cmd_remove'] = cmd_remove
             return out_cmd
 
-        my_cmds.append( gen_cmd(cmd_type="Time",
+        my_cmds.append( gen_cmd(cmd_type="AddOrder",
                                 cmd_side='B',
                                 cmd_orderid=0x30,
                                 cmd_quantity=20_000,
