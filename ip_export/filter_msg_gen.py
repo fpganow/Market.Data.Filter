@@ -312,6 +312,14 @@ Generator.Securities:
     def has_more_commands(self) -> bool:
         return len(self._commands) > 0
 
+    @sv()
+    def log_command_send(self) -> None:
+        pass
+
+    @sv()
+    def log_command_receive(self) -> None:
+        pass
+
     @sv(return_type=DataType.Int)
     def is_ok(self):
         return 100
