@@ -320,8 +320,11 @@ Generator.Securities:
     def log_command_receive(self) -> None:
         pass
 
-    @sv(return_type=DataType.Int)
-    def is_ok(self):
+    @sv(return_type=DataType.String)
+    def get_results(self):
+        results = """\
+Results of benchmark:
+"""
         return 100
 
 
