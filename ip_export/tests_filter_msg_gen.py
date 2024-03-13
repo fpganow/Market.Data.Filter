@@ -30,7 +30,6 @@ class TestCommandGenerator(TestCase):
                                    backup_path=config_toml)
 
         assert_that(filter_bench.has_more_commands(), equal_to(True))
-        ob_cmd = OBCommand()
 
         assert_that(filter_bench.name(), equal_to('Benchmark #1'))
         assert_that(filter_bench.description(), starts_with('Test how long'))
@@ -64,6 +63,16 @@ size_range = [25, 200]
 
 [[security]]
 symbol = "MSFT"
+
+# Comment
+[messages]
+csv=[
+[    'Type', 'Side',  'OrderId', 'Quantity', 'Symbol', 'Price', 'Exe Quantity', 'Can Quantity', 'Rem Quantity', 'Seconds', 'Nanoseconds',  'Op'],
+['AddOrder',    'B', 'ORID0001',        150,   'AAPL',  172.75,              0,              0,              0,       100,             0, 'add'],
+['AddOrder',    'B', 'ORID0002',         50,   'MSFT',  404.52,              0,              0,              0,       100,             0, 'add'],
+['AddOrder',    'B', 'ORID0003',        250,   'AAPL',  172.76,              0,              0,              0,       100,             0, 'add'],
+['AddOrder',    'B', 'ORID0004',        150,   'MSFT',  404.53,              0,              0,              0,       100,             0, 'add'],
+]
 """
 
         # Construct/set up FilterBench
@@ -79,6 +88,7 @@ symbol = "MSFT"
         assert_that(filter_bench.print_header(), contains_string('Benchmark name:'))
 
         assert_that(filter_bench.number_of_messages(), equal_to(500))
+        assert_that(filter_bench.number_of_messages(), equal_to(5))
 
 class TestWatchList(TestCase):
     def test_get_single_watchlist(self):

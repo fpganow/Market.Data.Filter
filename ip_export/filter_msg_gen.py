@@ -77,6 +77,8 @@ class OBCommand(object):
 
     @sv(return_type=DataType.ULongInt)
     def cmd_price(self) -> int:
+        print(f'TTTTTTTTTTTTTTTTTTTt: {self._cmd_price}')
+        sys.stdout.flush()
         return self._cmd_price
 
     @sv(return_type=DataType.UInt)
@@ -169,10 +171,13 @@ class FilterBench(object):
             self._securities_gen.append(sec_gen_dict)
 
         self._commands = deque()
-        ob_cmds = self.gen_messages()
+        ob_cmds = self.gen_messages(toml_file)
         self._commands.extend(ob_cmds)
+        #print(f'toml_file: {toml_file}')
 
-    def gen_messages(self):
+
+    @sv()
+    def gen_messages(self, toml_file):
         my_cmds = deque()
 
         class CmdType(Enum):
@@ -222,21 +227,37 @@ class FilterBench(object):
             out_cmd['cmd_remove'] = cmd_remove
             return out_cmd
 
-        my_cmds.append( gen_cmd(cmd_type="AddOrder",
-                                cmd_side='B',
-                                cmd_orderid=0x30,
-                                cmd_quantity=20_000,
-                                cmd_symbol=0x4141504C20202020,
-                                cmd_price=9050,
-                                cmd_executed_qty=150,
-                                cmd_canceled_qty=0,
-                                cmd_remaining_qty=0,
-                                cmd_seconds=500,
-                                cmd_nanoseconds=0,
-                                cmd_add=1,
-                                cmd_edit=0,
-                                cmd_remove=0
-                                ) )
+        # Read messages from config
+        # or use generator
+        if 'messages' in toml_file:
+            print(f'Using messages from config file')
+            ob_cmds = []
+            field_map = {}
+            for idx, val in enumerate(toml_file['messages']['csv'][0]):
+                #print(f' {val} = {idx}')
+                field_map[val] = idx
+
+            # cmd_type = get_field('Type')
+            for msg in toml_file['messages']['csv'][1:]:
+                print(f'OrderId: {msg[field_map["OrderId"]]}')
+                my_cmds.append( gen_cmd(cmd_type=msg[field_map['Type']],
+                                        cmd_side=msg[field_map['Side']],
+                                        cmd_orderid=0x30,
+                                        cmd_quantity=msg[field_map['Quantity']],
+                                        cmd_symbol=0x4141504C20202020,
+                                        cmd_price=msg[field_map['Price']],
+                                        cmd_executed_qty=msg[field_map['Exe Quantity']],
+                                        cmd_canceled_qty=msg[field_map['Can Quantity']],
+                                        cmd_remaining_qty=msg[field_map['Rem Quantity']],
+                                        cmd_seconds=msg[field_map['Seconds']],
+                                        cmd_nanoseconds=msg[field_map['Seconds']],
+                                        cmd_add=msg[field_map['Op']] == 'add',
+                                        cmd_edit=msg[field_map['Op']] == 'edit',
+                                        cmd_remove=msg[field_map['Op']] == 'remove'
+                                        ) )
+                #print(f'my_cmds[0]: {my_cmds[0]}')
+        else:
+            print(f'Using message generator')
 
         return my_cmds
 
