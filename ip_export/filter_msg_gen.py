@@ -75,10 +75,8 @@ class OBCommand(object):
     def cmd_symbol(self) -> int:
         return self._cmd_symbol
 
-    @sv(return_type=DataType.ULongInt)
+    @sv(return_type=DataType.Float)
     def cmd_price(self) -> int:
-        print(f'TTTTTTTTTTTTTTTTTTTt: {self._cmd_price}')
-        sys.stdout.flush()
         return self._cmd_price
 
     @sv(return_type=DataType.UInt)
@@ -174,6 +172,9 @@ class FilterBench(object):
         ob_cmds = self.gen_messages(toml_file)
         self._commands.extend(ob_cmds)
         #print(f'toml_file: {toml_file}')
+        # Index by OrderID + Seconds + Nanoseconds
+        self._sent_msgs = {}
+        self._recv_msgs = {}
 
 
     @sv()
@@ -230,7 +231,7 @@ class FilterBench(object):
         # Read messages from config
         # or use generator
         if 'messages' in toml_file:
-            print(f'Using messages from config file')
+            #print(f'Using messages from config file')
             ob_cmds = []
             field_map = {}
             for idx, val in enumerate(toml_file['messages']['csv'][0]):
@@ -239,7 +240,7 @@ class FilterBench(object):
 
             # cmd_type = get_field('Type')
             for msg in toml_file['messages']['csv'][1:]:
-                print(f'OrderId: {msg[field_map["OrderId"]]}')
+                #print(f'OrderId: {msg[field_map["OrderId"]]}')
                 my_cmds.append( gen_cmd(cmd_type=msg[field_map['Type']],
                                         cmd_side=msg[field_map['Side']],
                                         cmd_orderid=0x30,
@@ -333,13 +334,33 @@ Generator.Securities:
     def has_more_commands(self) -> bool:
         return len(self._commands) > 0
 
-    @sv()
-    def log_command_send(self) -> None:
-        pass
+    @sv(in_orderid=DataType.ULongInt,
+        in_seconds=DataType.ULongInt,
+        in_nanoseconds=DataType.ULongInt,
+        in_time_ns=DataType.Int)
+    def log_command_send(self,
+                         in_orderid,
+                         in_seconds,
+                         in_nanoseconds,
+                         in_time_ns) -> None:
+        print(f'log_command_send: in_orderid {type(in_orderid)} - {in_orderid}')
+        print(f'log_command_send: in_seconds {type(in_seconds)} - {in_seconds}')
+        print(f'log_command_send: in_nanoseconds {type(in_nanoseconds)} - {in_nanoseconds}')
+        print(f'log_command_send: in_tim_ns {type(in_time_ns)} - {in_time_ns}')
+        sys.stdout.flush()
+        aa
+        print(f"Logging: {in_ob_cmd['cmd_orderid']} + {in_ob_cmd['cmd_seconds']} + {in_ob_cmd['cmd_nanoseconds']}")
+        sys.stdout.flush()
 
-    @sv()
-    def log_command_receive(self) -> None:
-        pass
+        #self._sent_msgs[in_ob_cmd['cmd_orderid'] + in_ob_cmd['cmd_seconds']] = in_time_ns
+
+    @sv(in_orderid=DataType.ULongInt,
+        in_seconds=DataType.ULongInt,
+        in_nanoseconds=DataType.ULongInt,
+        in_time_recv_ns=DataType.Int)
+    def log_command_receive(self, in_orderid, in_seconds, in_nanoseconds,
+            in_time_recv) -> None:
+        self._recv_msgs[in_orderid + in_nanoseconds + in_nanoseconds] = in_time_recv
 
     @sv(return_type=DataType.String)
     def get_results(self):
