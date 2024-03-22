@@ -33,6 +33,7 @@ class OBCommand(object):
 
         self._cmd_edit = 0
         self._cmd_remove = 0
+        self._cmd_seq_no = 0
 
     # Creators
     def from_dict(self, in_dict):
@@ -53,6 +54,7 @@ class OBCommand(object):
 
         self._cmd_edit = in_dict['cmd_edit']
         self._cmd_remove = in_dict['cmd_remove']
+        self._cmd_seq_no = in_dict['cmd_seq_no']
 
     # Properties
     @sv(return_type=DataType.UByte)
@@ -111,6 +113,10 @@ class OBCommand(object):
     def cmd_remove(self) -> bool:
         return self._cmd_remove
 
+    @sv(return_type=DataType.UInt)
+    def cmd_seq_no(self) -> bool:
+        return self._cmd_seq_no
+
 
 class FilterBench(object):
     @sv(path_or_str=DataType.String,
@@ -168,6 +174,8 @@ class FilterBench(object):
 
             self._securities_gen.append(sec_gen_dict)
 
+        #print(f'---+++****' * 80)
+        #sys.stdout.flush()
         self._commands = deque()
         ob_cmds = self.gen_messages(toml_file)
         self._commands.extend(ob_cmds)
@@ -206,7 +214,8 @@ class FilterBench(object):
                     cmd_nanoseconds: int,
                     cmd_add: int,
                     cmd_edit: int,
-                    cmd_remove: int
+                    cmd_remove: int,
+                    cmd_seq_no: int
                     ):
             out_cmd = {}
             out_cmd['cmd_type'] = CmdType[cmd_type].value
@@ -226,6 +235,7 @@ class FilterBench(object):
 
             out_cmd['cmd_edit'] = cmd_edit
             out_cmd['cmd_remove'] = cmd_remove
+            out_cmd['cmd_seq_no'] = cmd_seq_no
             return out_cmd
 
         # Read messages from config
@@ -254,7 +264,8 @@ class FilterBench(object):
                                         cmd_nanoseconds=msg[field_map['Seconds']],
                                         cmd_add=msg[field_map['Op']] == 'add',
                                         cmd_edit=msg[field_map['Op']] == 'edit',
-                                        cmd_remove=msg[field_map['Op']] == 'remove'
+                                        cmd_remove=msg[field_map['Op']] == 'remove',
+                                        cmd_seq_no=msg[field_map['SeqNo']]
                                         ) )
                 #print(f'my_cmds[0]: {my_cmds[0]}')
         else:
@@ -335,21 +346,24 @@ Generator.Securities:
         return len(self._commands) > 0
 
     @sv(in_orderid=DataType.ULongInt,
+        in_seq_no=DataType.ULongInt,
         in_seconds=DataType.ULongInt,
         in_nanoseconds=DataType.ULongInt,
         in_time_ns=DataType.Int)
     def log_command_send(self,
                          in_orderid,
+                         in_seq_no,
                          in_seconds,
                          in_nanoseconds,
                          in_time_ns) -> None:
         print(f'log_command_send: in_orderid {type(in_orderid)} - {in_orderid}')
+        print(f'log_command_send: in_seq_no {type(in_seq_no)} - {in_seq_no}')
         print(f'log_command_send: in_seconds {type(in_seconds)} - {in_seconds}')
         print(f'log_command_send: in_nanoseconds {type(in_nanoseconds)} - {in_nanoseconds}')
         print(f'log_command_send: in_tim_ns {type(in_time_ns)} - {in_time_ns}')
         sys.stdout.flush()
-        print(f"Logging: {in_ob_cmd['cmd_orderid']} + {in_ob_cmd['cmd_seconds']} + {in_ob_cmd['cmd_nanoseconds']}")
-        sys.stdout.flush()
+        #print(f"Logging: {in_ob_cmd['cmd_orderid']} + {in_ob_cmd['cmd_seconds']} + {in_ob_cmd['cmd_nanoseconds']}")
+        #sys.stdout.flush()
 
         #self._sent_msgs[in_ob_cmd['cmd_orderid'] + in_ob_cmd['cmd_seconds']] = in_time_ns
 
@@ -366,7 +380,7 @@ Generator.Securities:
         results = """\
 Results of benchmark:
 """
-        return 100
+        return results
 
 
 class MyList(object):
