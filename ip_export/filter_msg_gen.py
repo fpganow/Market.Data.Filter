@@ -348,7 +348,6 @@ Generator.Securities:
         print(f'log_command_send: in_nanoseconds {type(in_nanoseconds)} - {in_nanoseconds}')
         print(f'log_command_send: in_tim_ns {type(in_time_ns)} - {in_time_ns}')
         sys.stdout.flush()
-        aa
         print(f"Logging: {in_ob_cmd['cmd_orderid']} + {in_ob_cmd['cmd_seconds']} + {in_ob_cmd['cmd_nanoseconds']}")
         sys.stdout.flush()
 
