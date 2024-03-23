@@ -120,12 +120,15 @@ class OBCommand(object):
 
 class FilterBench(object):
     @sv(path_or_str=DataType.String,
-        backup_path=DataType.String)
+        backup_path=DataType.String,
+        clock_period=DataType.Int)
     def __init__(self,
                  path_or_str: str,
-                 backup_path: str = None):
+                 backup_path: str = None,
+                 clock_period: int = None):
         toml_file = None
         self._config_file_name = "<raw string>"
+        self._clock_period = clock_period
 
         try:
             if Path(path_or_str).exists() is True:
@@ -181,8 +184,7 @@ class FilterBench(object):
         self._commands.extend(ob_cmds)
         #print(f'toml_file: {toml_file}')
         # Index by OrderID + Seconds + Nanoseconds
-        self._sent_msgs = {}
-        self._recv_msgs = {}
+        self._msgs = {}
 
 
     @sv()
@@ -203,7 +205,7 @@ class FilterBench(object):
 
         def gen_cmd(cmd_type: str,
                     cmd_side: str,
-                    cmd_orderid: int,
+                    cmd_orderid: str,
                     cmd_quantity: int,
                     cmd_symbol: int,
                     cmd_price: int,
@@ -220,9 +222,13 @@ class FilterBench(object):
             out_cmd = {}
             out_cmd['cmd_type'] = CmdType[cmd_type].value
             out_cmd['cmd_side'] = 0x42 if cmd_side == 'B' else 0x53
-            out_cmd['cmd_orderid'] = cmd_orderid
+            self.LOG_NOW(f'OID: {cmd_orderid}: {cmd_orderid[-1]}')
+            # TODO: Convert OrderId from STRING to HEX
+            out_cmd['cmd_orderid'] = int(cmd_orderid[-1])
             out_cmd['cmd_quantity'] = cmd_quantity
 
+            # TODO: Make symbol 0x4141504C20202020
+            self.LOG_NOW(f'SYMBOL: {cmd_symbol}: {cmd_symbol[-1]}')
             out_cmd['cmd_symbol'] = cmd_symbol
             out_cmd['cmd_price'] = cmd_price
             out_cmd['cmd_executed_qty'] = cmd_executed_qty
@@ -253,9 +259,9 @@ class FilterBench(object):
                 #print(f'OrderId: {msg[field_map["OrderId"]]}')
                 my_cmds.append( gen_cmd(cmd_type=msg[field_map['Type']],
                                         cmd_side=msg[field_map['Side']],
-                                        cmd_orderid=0x30,
+                                        cmd_orderid=msg[field_map['OrderId']],
                                         cmd_quantity=msg[field_map['Quantity']],
-                                        cmd_symbol=0x4141504C20202020,
+                                        cmd_symbol=msg[field_map['Symbol']],
                                         cmd_price=msg[field_map['Price']],
                                         cmd_executed_qty=msg[field_map['Exe Quantity']],
                                         cmd_canceled_qty=msg[field_map['Can Quantity']],
@@ -351,35 +357,61 @@ Generator.Securities:
         in_nanoseconds=DataType.ULongInt,
         in_time_ns=DataType.Int)
     def log_command_send(self,
-                         in_orderid,
-                         in_seq_no,
-                         in_seconds,
-                         in_nanoseconds,
-                         in_time_ns) -> None:
-        print(f'log_command_send: in_orderid {type(in_orderid)} - {in_orderid}')
-        print(f'log_command_send: in_seq_no {type(in_seq_no)} - {in_seq_no}')
-        print(f'log_command_send: in_seconds {type(in_seconds)} - {in_seconds}')
-        print(f'log_command_send: in_nanoseconds {type(in_nanoseconds)} - {in_nanoseconds}')
-        print(f'log_command_send: in_tim_ns {type(in_time_ns)} - {in_time_ns}')
+                         in_orderid: int,
+                         in_seq_no: int,
+                         in_seconds: int,
+                         in_nanoseconds: int,
+                         in_time_ns: int) -> None:
+        sent_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
+        print(f'log_command_send: (in_orderid={in_orderid}, in_seq_no={in_seq_no},')
+        #print(f'                   in_seconds={in_seconds}, in_nanoseconds={in_nanoseconds},')
+        print(f'                   in_time_ns={in_time_ns}) => ("{sent_key}":{in_time_ns})')
         sys.stdout.flush()
-        #print(f"Logging: {in_ob_cmd['cmd_orderid']} + {in_ob_cmd['cmd_seconds']} + {in_ob_cmd['cmd_nanoseconds']}")
-        #sys.stdout.flush()
 
-        #self._sent_msgs[in_ob_cmd['cmd_orderid'] + in_ob_cmd['cmd_seconds']] = in_time_ns
+        self._msgs[sent_key] = [in_time_ns, None, None]
 
     @sv(in_orderid=DataType.ULongInt,
+        in_seq_no=DataType.ULongInt,
         in_seconds=DataType.ULongInt,
         in_nanoseconds=DataType.ULongInt,
         in_time_recv_ns=DataType.Int)
-    def log_command_receive(self, in_orderid, in_seconds, in_nanoseconds,
-            in_time_recv) -> None:
-        self._recv_msgs[in_orderid + in_nanoseconds + in_nanoseconds] = in_time_recv
+    def log_command_receive(self,
+                            in_orderid: int,
+                            in_seq_no: int,
+                            in_seconds: int,
+                            in_nanoseconds: int,
+                            in_time_recv: int) -> None:
+        recv_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
+        print(f'log_command_receive: (in_orderid={in_orderid}, in_seq_no={in_seq_no},')
+        #print(f'                      in_seconds={in_seconds}, in_nanoseconds={in_nanoseconds},')
+        print(f'                      in_time_ns={in_time_recv}) => ("{recv_key}":{in_time_recv})')
+        print(f'self._msgs[recv_key]: {self._msgs[recv_key]}')
+        sys.stdout.flush()
+
+        self._msgs[recv_key][1] = in_time_recv
+        #, 0 if recv_key not in self._sent_msgs else in_time_recv - self._sent_msgs[recv_key])
 
     @sv(return_type=DataType.String)
     def get_results(self):
         results = """\
+---------------------
 Results of benchmark:
+---------------------
+
 """
+        results += """\
+-------------------------
+Log of messages
+-------------------------
+"""
+        for key, (sent_time, recv_time, delta) in self._msgs.items():
+            delta = recv_time - sent_time
+            results += f'{key}\t{sent_time}\t{recv_time}\t{delta}ns\n'
+
+        # TODO: Calculate benchmarks using clock rate
+        results += '\n'
+        results += f'Clock Period: {self._clock_period}\n'
+
         return results
 
 
