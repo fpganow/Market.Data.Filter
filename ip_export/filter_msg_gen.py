@@ -4,6 +4,7 @@ from pysv import (
     generate_sv_binding,
     sv
 )
+from cboe_pitch.pitch24 import FieldConverter
 from collections import deque
 from enum import Enum
 import math
@@ -155,7 +156,6 @@ class FilterBench(object):
         self._number_of_messages = toml_file['generator']['number_of_messages']
         self._securities_gen = []
         for security in toml_file['security']:
-            self.LOG_NOW("Parsing Security")
             sec_gen_dict = {}
             sec_gen_dict['symbol'] = security['symbol']
             if 'weight' in security:
@@ -222,14 +222,10 @@ class FilterBench(object):
             out_cmd = {}
             out_cmd['cmd_type'] = CmdType[cmd_type].value
             out_cmd['cmd_side'] = 0x42 if cmd_side == 'B' else 0x53
-            self.LOG_NOW(f'OID: {cmd_orderid}: {cmd_orderid[-1]}')
-            # TODO: Convert OrderId from STRING to HEX
-            out_cmd['cmd_orderid'] = int(cmd_orderid[-1])
+            out_cmd['cmd_orderid'] = FieldConverter.orderid_to_u64(cmd_orderid)
             out_cmd['cmd_quantity'] = cmd_quantity
 
-            # TODO: Make symbol 0x4141504C20202020
-            self.LOG_NOW(f'SYMBOL: {cmd_symbol}: {cmd_symbol[-1]}')
-            out_cmd['cmd_symbol'] = cmd_symbol
+            out_cmd['cmd_symbol'] = FieldConverter.symbol_to_u64(cmd_symbol)
             out_cmd['cmd_price'] = cmd_price
             out_cmd['cmd_executed_qty'] = cmd_executed_qty
             out_cmd['cmd_canceled_qty'] = cmd_canceled_qty
@@ -308,21 +304,21 @@ class FilterBench(object):
     def print_header(self) -> str:
         watch_list = '\n'.join(['  - ' + x for x in self._watch_list])
         securities_gen = '\n'.join([ str(x) for x in self._securities_gen])
-        return f"""
-------------------------------------------------------------------------------
-Benchmark name: {self.name()}
-Long description:
+        return f"""\
++----------------------------------------------------------------------------+
+{self.name()}
+--
 {self.description()}
-
+--
 Watchlist:
 {watch_list}
-
-Generator:
+--
+Generator Options:
 # of messages: {self.number_of_messages()}
-
+--
 Generator.Securities:
 {securities_gen}
-------------------------------------------------------------------------------
++----------------------------------------------------------------------------+\
 """
 
     # WatchList Section
@@ -363,9 +359,9 @@ Generator.Securities:
                          in_nanoseconds: int,
                          in_time_ns: int) -> None:
         sent_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-        print(f'log_command_send: (in_orderid={in_orderid}, in_seq_no={in_seq_no},')
+        #print(f'log_command_send: (orderid={hex(in_orderid)}, seq_no={in_seq_no}) => ')
         #print(f'                   in_seconds={in_seconds}, in_nanoseconds={in_nanoseconds},')
-        print(f'                   in_time_ns={in_time_ns}) => ("{sent_key}":{in_time_ns})')
+        print(f'       log_send:  ("{sent_key}": {in_time_ns})')
         sys.stdout.flush()
 
         self._msgs[sent_key] = [in_time_ns, None, None]
@@ -382,10 +378,11 @@ Generator.Securities:
                             in_nanoseconds: int,
                             in_time_recv: int) -> None:
         recv_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-        print(f'log_command_receive: (in_orderid={in_orderid}, in_seq_no={in_seq_no},')
+        #print(f'log_command_receive: (in_orderid={in_orderid}, in_seq_no={in_seq_no},')
         #print(f'                      in_seconds={in_seconds}, in_nanoseconds={in_nanoseconds},')
-        print(f'                      in_time_ns={in_time_recv}) => ("{recv_key}":{in_time_recv})')
-        print(f'self._msgs[recv_key]: {self._msgs[recv_key]}')
+        #print(f'                      in_time_ns={in_time_recv}) => ("{recv_key}":{in_time_recv})')
+        #print(f'self._msgs[recv_key]: {self._msgs[recv_key]}')
+        print(f'       log_recv:  ("{recv_key}": {in_time_ns})')
         sys.stdout.flush()
 
         self._msgs[recv_key][1] = in_time_recv
@@ -404,9 +401,9 @@ Results of benchmark:
 Log of messages
 -------------------------
 """
-        for key, (sent_time, recv_time, delta) in self._msgs.items():
-            delta = recv_time - sent_time
-            results += f'{key}\t{sent_time}\t{recv_time}\t{delta}ns\n'
+#        for key, (sent_time, recv_time, delta) in self._msgs.items():
+#            delta = recv_time - sent_time
+#            results += f'{key}\t{sent_time}\t{recv_time}\t{delta}ns\n'
 
         # TODO: Calculate benchmarks using clock rate
         results += '\n'
