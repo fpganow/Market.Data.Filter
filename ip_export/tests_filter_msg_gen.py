@@ -2,23 +2,8 @@ from hamcrest import assert_that, contains_string, equal_to, has_length, starts_
 from unittest import TestCase
 
 
-# codegen.py: get_c_type_str
-# UByte     =  uint8_t
-# UInt      =  uint32_t
-# ULongInt  =  uint64_t
-# reg    [ 7:0]    in_ip_command_in_type;
-# reg    [ 7:0]    in_ip_command_in_side;
-# reg    [63:0]    in_ip_command_in_orderid;
-# reg    [31:0]    in_ip_command_in_quantity;
-# reg    [63:0]    in_ip_command_in_symbol;
-# reg    [63:0]    in_ip_command_in_price;
-# reg    [31:0]    in_ip_command_in_executed_qty;
-# reg    [31:0]    in_ip_command_in_canceled_qty;
-# reg    [31:0]    in_ip_command_in_remaining_qty;
-# reg    [63:0]    in_ip_command_in_seconds;
-# reg    [63:0]    in_ip_command_in_nanoseconds;
-
 from filter_msg_gen import FilterBench
+
 
 class TestCommandGenerator(TestCase):
     def test_basic_config_from_file(self):
@@ -32,7 +17,7 @@ class TestCommandGenerator(TestCase):
         assert_that(filter_bench.has_more_commands(), equal_to(True))
 
         assert_that(filter_bench.name(), equal_to('Benchmark #1'))
-        assert_that(filter_bench.description(), starts_with('Test how long'))
+        assert_that(filter_bench.description(), starts_with('This is my description'))
         assert_that(filter_bench.watch_list(), has_length(2))
 
         assert_that(filter_bench.number_of_messages(), equal_to(100))
@@ -43,6 +28,7 @@ class TestCommandGenerator(TestCase):
         config_toml = """\
 name = "Test 1 Security"
 description = '''
+benchmark_name
 Test how long it takes
 for one string
 '''
@@ -67,11 +53,11 @@ symbol = "MSFT"
 # Comment
 [messages]
 csv=[
-[    'Type', 'Side',  'OrderId', 'Quantity', 'Symbol', 'Price', 'Exe Quantity', 'Can Quantity', 'Rem Quantity', 'Seconds', 'Nanoseconds',  'Op'],
-['AddOrder',    'B', 'ORID0001',        150,   'AAPL',  172.75,              0,              0,              0,       100,             0, 'add'],
-['AddOrder',    'B', 'ORID0002',         50,   'MSFT',  404.52,              0,              0,              0,       100,             0, 'add'],
-['AddOrder',    'B', 'ORID0003',        250,   'AAPL',  172.76,              0,              0,              0,       100,             0, 'add'],
-['AddOrder',    'B', 'ORID0004',        150,   'MSFT',  404.53,              0,              0,              0,       100,             0, 'add'],
+[    'Type', 'Side',  'OrderId', 'Quantity', 'Symbol', 'Price', 'Exe Quantity', 'Can Quantity', 'Rem Quantity', 'Seconds', 'Nanoseconds',  'Op', 'SeqNo'],
+['AddOrder',    'B', 'ORID0001',        150,   'AAPL',  172.75,              0,              0,              0,       100,             0, 'add',       1],
+['AddOrder',    'B', 'ORID0002',         50,   'MSFT',  404.52,              0,              0,              0,       100,             0, 'add',       2],
+['AddOrder',    'B', 'ORID0003',        250,   'AAPL',  172.76,              0,              0,              0,       100,             0, 'add',       3],
+['AddOrder',    'B', 'ORID0004',        150,   'MSFT',  404.53,              0,              0,              0,       100,             0, 'add',       4],
 ]
 """
 
@@ -81,14 +67,13 @@ csv=[
         assert_that(filter_bench.has_more_commands(), equal_to(True))
 
         assert_that(filter_bench.name(), equal_to('Test 1 Security'))
-        assert_that(filter_bench.description(), starts_with('Test how long'))
+        assert_that(filter_bench.description(), starts_with('benchmark_name\nTest how long'))
         assert_that(filter_bench.watch_list(), has_length(2))
 
-        print(filter_bench.print_header())
-        assert_that(filter_bench.print_header(), contains_string('Benchmark name:'))
+        assert_that(filter_bench.print_header(), contains_string('benchmark_name'))
 
         assert_that(filter_bench.number_of_messages(), equal_to(500))
-        assert_that(filter_bench.number_of_messages(), equal_to(5))
+
 
 class TestWatchList(TestCase):
     def test_get_single_watchlist(self):
