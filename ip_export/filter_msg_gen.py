@@ -70,6 +70,10 @@ class OBCommand(object):
     def cmd_orderid(self) -> int:
         return self._cmd_orderid
 
+    @sv(return_type=DataType.String)
+    def cmd_orderid_str(self) -> str:
+        return FieldConverter.u64_to_orderid(self._cmd_orderid)
+
     @sv(return_type=DataType.UInt)
     def cmd_quantity(self) -> int:
         return self._cmd_quantity
@@ -77,6 +81,10 @@ class OBCommand(object):
     @sv(return_type=DataType.ULongInt)
     def cmd_symbol(self) -> int:
         return self._cmd_symbol
+
+    @sv(return_type=DataType.String)
+    def cmd_symbol_str(self) -> str:
+        return FieldConverter.u64_to_symbol(self._cmd_symbol)
 
     @sv(return_type=DataType.Float)
     def cmd_price(self) -> int:
@@ -185,6 +193,11 @@ class FilterBench(object):
         #print(f'toml_file: {toml_file}')
         # Index by OrderID + Seconds + Nanoseconds
         self._msgs = {}
+        self._expected_msgs_count = 0
+
+    @sv(return_type=DataType.Int)
+    def get_expected_msgs_count(self) -> int:
+        return self._expected_msgs_count
 
 
     @sv()
@@ -359,10 +372,7 @@ Generator.Securities:
                          in_nanoseconds: int,
                          in_time_ns: int) -> None:
         sent_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-        #print(f'log_command_send: (orderid={hex(in_orderid)}, seq_no={in_seq_no}) => ')
-        #print(f'                   in_seconds={in_seconds}, in_nanoseconds={in_nanoseconds},')
-        print(f'       log_send:  ("{sent_key}": {in_time_ns})')
-        sys.stdout.flush()
+        # Will this message go through the filter?
 
         self._msgs[sent_key] = [in_time_ns, None, None]
 
@@ -378,15 +388,7 @@ Generator.Securities:
                             in_nanoseconds: int,
                             in_time_recv: int) -> None:
         recv_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-        #print(f'log_command_receive: (in_orderid={in_orderid}, in_seq_no={in_seq_no},')
-        #print(f'                      in_seconds={in_seconds}, in_nanoseconds={in_nanoseconds},')
-        #print(f'                      in_time_ns={in_time_recv}) => ("{recv_key}":{in_time_recv})')
-        #print(f'self._msgs[recv_key]: {self._msgs[recv_key]}')
-        print(f'       log_recv:  ("{recv_key}": {in_time_ns})')
-        sys.stdout.flush()
-
         self._msgs[recv_key][1] = in_time_recv
-        #, 0 if recv_key not in self._sent_msgs else in_time_recv - self._sent_msgs[recv_key])
 
     @sv(return_type=DataType.String)
     def get_results(self):
