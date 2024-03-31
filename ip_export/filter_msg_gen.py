@@ -58,58 +58,104 @@ class OBCommand(object):
         self._cmd_seq_no = in_dict['cmd_seq_no']
 
     # Properties
+
+    # Command Type
     @sv(return_type=DataType.UByte)
     def cmd_type(self) -> int:
         return self._cmd_type
+    def cmd_type_str(self) -> str:
+        if self._cmd_type == 0:
+            return 'Time'
+        elif self._cmd_type == 1:
+            return 'AddOrder'
+        elif self._cmd_type == 2:
+            return 'OrderExecuted'
+        elif self._cmd_type == 3:
+            return 'OrderExecutedAtPrice'
+        elif self._cmd_type == 4:
+            return 'ReduceSize'
+        elif self._cmd_type == 5:
+            return 'ModifyOrder'
+        elif self._cmd_type == 6:
+            return 'DeleteOrder'
+        elif self._cmd_type == 7:
+            return 'GetEverything'
+        elif self._cmd_type == 8:
+            return 'GetAllOrders'
+        elif self._cmd_type == 9:
+            return 'GetTop'
 
+    # Side
     @sv(return_type=DataType.UByte)
     def cmd_side(self) -> int:
         return self._cmd_side
+    def cmd_side_str(self) -> str:
+        return 'B' if self._cmd_side == ord('B') else 'S'
 
+    # OrderId
     @sv(return_type=DataType.ULongInt)
     def cmd_orderid(self) -> int:
         return self._cmd_orderid
-
     @sv(return_type=DataType.String)
     def cmd_orderid_str(self) -> str:
         return FieldConverter.u64_to_orderid(self._cmd_orderid)
 
+    # Quantity
     @sv(return_type=DataType.UInt)
     def cmd_quantity(self) -> int:
         return self._cmd_quantity
 
+    # Symbol
     @sv(return_type=DataType.ULongInt)
     def cmd_symbol(self) -> int:
         return self._cmd_symbol
-
     @sv(return_type=DataType.String)
     def cmd_symbol_str(self) -> str:
         return FieldConverter.u64_to_symbol(self._cmd_symbol)
 
+    # Price
     @sv(return_type=DataType.Float)
     def cmd_price(self) -> int:
         return self._cmd_price
+    def cmd_price_str(self) -> str:
+        return f'{self._cmd_price:.4f}'
 
+    # Executed Quantity
     @sv(return_type=DataType.UInt)
     def cmd_executed_qty(self) -> int:
         return self._cmd_executed_qty
+    def cmd_executed_qty_str(self) -> str:
+        return f'{self._cmd_executed_qty}'
 
+    # Canceled Quantity
     @sv(return_type=DataType.UInt)
     def cmd_canceled_qty(self) -> int:
         return self._cmd_canceled_qty
+    def cmd_canceled_qty_str(self) -> str:
+        return f'{self._cmd_canceled_qty}'
 
+    # Remaining Quantity
     @sv(return_type=DataType.UInt)
     def cmd_remaining_qty(self) -> int:
         return self._cmd_remaining_qty
+    def cmd_remaining_qty_str(self) -> str:
+        return f'{self._cmd_remaining_qty}'
 
+    # Seconds
     @sv(return_type=DataType.ULongInt)
     def cmd_seconds(self) -> int:
         return self._cmd_seconds
+    def cmd_seconds_str(self) -> str:
+        return f'{self._cmd_seconds}'
 
+    # Nanoseconds
     @sv(return_type=DataType.ULongInt)
     def cmd_nanoseconds(self) -> int:
         return self._cmd_nanoseconds
+    def cmd_nanoseconds_str(self) -> str:
+        return f'{self._cmd_nanoseconds}'
 
+    # Operation (Op)
     @sv(return_type=DataType.Bit)
     def cmd_add(self) -> bool:
         return self._cmd_add
@@ -122,9 +168,39 @@ class OBCommand(object):
     def cmd_remove(self) -> bool:
         return self._cmd_remove
 
+    def cmd_op_str(self) -> str:
+        if self._cmd_add is True:
+            return 'add'
+        if self._cmd_edit is True:
+            return 'edit'
+        if self._cmd_remove is True:
+            return 'remove'
+
+    # Sequence Number (No.)
     @sv(return_type=DataType.UInt)
-    def cmd_seq_no(self) -> bool:
+    def cmd_seq_no(self) -> int:
         return self._cmd_seq_no
+    def cmd_seq_no_str(self) -> str:
+        return f'{self._cmd_seq_no}'
+
+    @sv(return_type=DataType.String)
+    def to_str(self) -> str:
+        ob_str = '['
+        ob_str += f"'{self.cmd_type_str()},'"
+        ob_str += f"'{self.cmd_side_str()},'"
+        ob_str += f"'{self.cmd_orderid_str()},'"
+        ob_str += f"{self.cmd_quantity()},"
+        ob_str += f"'{self.cmd_symbol_str()}',"
+        ob_str += f"{self.cmd_price_str()},"
+        ob_str += f"{self.cmd_executed_qty_str()},"
+        ob_str += f"{self.cmd_canceled_qty_str()},"
+        ob_str += f"{self.cmd_remaining_qty_str()},"
+        ob_str += f"{self.cmd_seconds_str()},"
+        ob_str += f"{self.cmd_nanoseconds_str()},"
+        ob_str += f"'{self.cmd_op_str()}',"
+        ob_str += f"{self.cmd_seq_no_str()},"
+        ob_str += ']'
+        return ob_str
 
 
 class FilterBench(object):
@@ -360,21 +436,32 @@ Generator.Securities:
     def has_more_commands(self) -> bool:
         return len(self._commands) > 0
 
-    @sv(in_orderid=DataType.ULongInt,
-        in_seq_no=DataType.ULongInt,
-        in_seconds=DataType.ULongInt,
-        in_nanoseconds=DataType.ULongInt,
-        in_time_ns=DataType.Int)
+#    @sv(in_orderid=DataType.ULongInt,
+#        in_seq_no=DataType.ULongInt,
+#        in_seconds=DataType.ULongInt,
+#        in_nanoseconds=DataType.ULongInt,
+#        in_ob_cmd=OBCommand,
+#        in_time_ns=DataType.Int)
+#    def log_command_send(self,
+#                         in_orderid: int,
+#                         in_seq_no: int,
+#                         in_seconds: int,
+#                         in_nanoseconds: int,
+#                         in_ob_cmd: 'OBCommand',
+#                         in_time_ns: int) -> None:
+#        sent_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
+#        # Will this message go through the filter?
+#
+#        self._msgs[sent_key] = [in_time_ns, None, None]
+    @sv(in_ob_cmd=OBCommand, in_time_ns=DataType.Int)
     def log_command_send(self,
-                         in_orderid: int,
-                         in_seq_no: int,
-                         in_seconds: int,
-                         in_nanoseconds: int,
+                         in_ob_cmd: 'OBCommand',
                          in_time_ns: int) -> None:
-        sent_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-        # Will this message go through the filter?
+        self.LOG_NOW(f'Logging: {in_ob_cmd.to_str()}')
+        msg_key = f'{in_ob_cmd.cmd_orderid_str()},
+        self._msgs[msg_key] 
+#        self._msgs[sent_key] = [in_time_ns, None, None]
 
-        self._msgs[sent_key] = [in_time_ns, None, None]
 
     @sv(in_orderid=DataType.ULongInt,
         in_seq_no=DataType.ULongInt,
@@ -521,6 +608,7 @@ class MyList(object):
             sys.stdout.flush()
         return res
 
+#def log_cmd(in_ob_cmd: OBCommand) -> None:
 
 ##############################################################################
 # PYSV Related functions
