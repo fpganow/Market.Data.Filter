@@ -14,6 +14,8 @@ import tomllib
 from typing import Dict, List
 
 
+
+
 class OBCommand(object):
     @sv()
     def __init__(self):
@@ -233,36 +235,41 @@ class FilterBench(object):
             self.LOG_NOW('Exception')
             raise Exception(f'Failed to load config from {path_or_str}')
 
-        self._name = toml_file['name']
-        self._description = toml_file['description']
-        self._watch_list = toml_file['watchlist']
+        try:
+            self._name = toml_file['name']
+            self._description = toml_file['description']
+            self._watch_list = toml_file['watchlist']
+            self._number_of_messages = toml_file['generator']['number_of_messages']
 
-        self._number_of_messages = toml_file['generator']['number_of_messages']
-        self._securities_gen = []
-        for security in toml_file['security']:
-            sec_gen_dict = {}
-            sec_gen_dict['symbol'] = security['symbol']
-            if 'weight' in security:
-                sec_gen_dict['weight'] = security['weight']
-            else:
-                sec_gen_dict['weight'] = math.nan
-            if 'book_size_range' in security:
-                sec_gen_dict['book_size_range'] = security['book_size_range']
-            else:
-                sec_gen_dict['book_size_range'] = 10
-            if 'price_range' in security:
-                sec_gen_dict['price_range'] = security['price_range']
-            else:
-                sec_gen_dict['price_range'] = [75.00, 125.00]
-            if 'size_range' in security:
-                sec_gen_dict['size_range'] = security['size_range']
-            else:
-                sec_gen_dict['size_range'] = [25, 200]
+            self._securities_gen = []
+            for security in toml_file['security']:
+                sec_gen_dict = {}
+                sec_gen_dict['symbol'] = security['symbol']
+                if 'weight' in security:
+                    sec_gen_dict['weight'] = security['weight']
+                else:
+                    sec_gen_dict['weight'] = math.nan
+                if 'book_size_range' in security:
+                    sec_gen_dict['book_size_range'] = security['book_size_range']
+                else:
+                    sec_gen_dict['book_size_range'] = 10
+                if 'price_range' in security:
+                    sec_gen_dict['price_range'] = security['price_range']
+                else:
+                    sec_gen_dict['price_range'] = [75.00, 125.00]
+                if 'size_range' in security:
+                    sec_gen_dict['size_range'] = security['size_range']
+                else:
+                    sec_gen_dict['size_range'] = [25, 200]
 
-            self._securities_gen.append(sec_gen_dict)
+                self._securities_gen.append(sec_gen_dict)
+                self._orderids = set()
 
-        #print(f'---+++****' * 80)
-        #sys.stdout.flush()
+        except Exception as ex:
+            print(f'Exception caught in FilterBench.__init__:\n{ex}')
+            print('-'*80); sys.stdout.flush()
+
+        #print(f'---+++****' * 80); sys.stdout.flush()
         self._commands = deque()
         ob_cmds = self.gen_messages(toml_file)
         self._commands.extend(ob_cmds)
@@ -436,46 +443,42 @@ Generator.Securities:
     def has_more_commands(self) -> bool:
         return len(self._commands) > 0
 
-#    @sv(in_orderid=DataType.ULongInt,
-#        in_seq_no=DataType.ULongInt,
-#        in_seconds=DataType.ULongInt,
-#        in_nanoseconds=DataType.ULongInt,
-#        in_ob_cmd=OBCommand,
-#        in_time_ns=DataType.Int)
-#    def log_command_send(self,
-#                         in_orderid: int,
-#                         in_seq_no: int,
-#                         in_seconds: int,
-#                         in_nanoseconds: int,
-#                         in_ob_cmd: 'OBCommand',
-#                         in_time_ns: int) -> None:
-#        sent_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-#        # Will this message go through the filter?
-#
-#        self._msgs[sent_key] = [in_time_ns, None, None]
+
     @sv(in_ob_cmd=OBCommand, in_time_ns=DataType.Int)
     def log_command_send(self,
                          in_ob_cmd: 'OBCommand',
                          in_time_ns: int) -> None:
-        self.LOG_NOW(f'Logging: {in_ob_cmd.to_str()}')
-        msg_key = f'{in_ob_cmd.cmd_orderid_str()},
-        self._msgs[msg_key] 
-#        self._msgs[sent_key] = [in_time_ns, None, None]
+        #self.LOG_NOW(f'Logging_send: {in_ob_cmd.to_str()}')
+        msg_key = f'{in_ob_cmd.cmd_orderid_str()}-{in_ob_cmd.cmd_seq_no_str()}'
+        self._msgs[msg_key] = {'ob_cmd': in_ob_cmd, 'sent_time': in_time_ns}
 
+        # Should this message pass through the filter?
+        if in_ob_cmd.cmd_type_str() == 'AddOrder':
+            #self.LOG_NOW(f'  --  AddOrder: {in_ob_cmd.cmd_symbol_str()} --')
+            if in_ob_cmd.cmd_symbol_str() in set(self._watch_list):
+                self._expected_msgs_count += 1
+                self._orderids.add(in_ob_cmd.cmd_orderid_str())
+                #self.LOG_NOW(f'  --  self._orderids: {len(self._orderids)}')
+        else:
+            #self.LOG_NOW('  --  Other type --')
+            if in_ob_cmd.cmd_orderid_str() in self._orderids:
+                self._expected_msgs_count += 1
 
     @sv(in_orderid=DataType.ULongInt,
         in_seq_no=DataType.ULongInt,
-        in_seconds=DataType.ULongInt,
-        in_nanoseconds=DataType.ULongInt,
-        in_time_recv_ns=DataType.Int)
+        in_time_ns=DataType.Int)
     def log_command_receive(self,
                             in_orderid: int,
                             in_seq_no: int,
-                            in_seconds: int,
-                            in_nanoseconds: int,
-                            in_time_recv: int) -> None:
-        recv_key = str(hex(in_orderid)) + '-' + str(hex(in_seq_no))
-        self._msgs[recv_key][1] = in_time_recv
+                            in_time_ns: int) -> None:
+        in_orderid_str = FieldConverter.u64_to_orderid(in_orderid)
+        in_seq_no_str = f'{in_seq_no}'
+
+        msg_key = f'{in_orderid_str}-{in_seq_no}'
+        #self.LOG_NOW(f'Logging_recv: {msg_key}')
+
+        self._msgs[msg_key]['recv_time'] = in_time_ns
+
 
     @sv(return_type=DataType.String)
     def get_results(self):
@@ -490,14 +493,18 @@ Results of benchmark:
 Log of messages
 -------------------------
 """
-#        for key, (sent_time, recv_time, delta) in self._msgs.items():
-#            delta = recv_time - sent_time
-#            results += f'{key}\t{sent_time}\t{recv_time}\t{delta}ns\n'
 
         # TODO: Calculate benchmarks using clock rate
         results += '\n'
-        results += f'Clock Period: {self._clock_period}\n'
+        results += f'Clock Period: {self._clock_period}ns\n'
+        results += '\n'
 
+        for key, val in self._msgs.items():
+            # Does message have a received time?
+            if 'recv_time' in val:
+                [oid, seq_no] = key.split('-')
+                delta = val['recv_time'] - val['sent_time']
+                results += f'  {oid}:{seq_no} Delta: {delta}ns\n'
         return results
 
 
